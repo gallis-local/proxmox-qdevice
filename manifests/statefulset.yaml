@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: proxmox-qdevice
+  namespace: proxmox-corosync
+spec:
+  serviceName: "qdevice"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: proxmox-qdevice
+  template:
+    metadata:
+      labels:
+        app: proxmox-qdevice
+    spec:
+      imagePullSecrets:
+      - name: harbor    
+      containers:
+      - name: proxmox-qdevice
+        image: <your-registry>/proxmox-qdevice
+        ports:
+        - containerPort: 22
+          name: ssh
+        - containerPort: 5403
+          name: corosync
+        env:
+        - name: NEW_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: corosync-secrets
+              key: NEW_ROOT_PASSWORD
+        volumeMounts:
+        - name: sshd
+          mountPath: /run/sshd
+        - name: corosync-storage
+          mountPath: /etc/corosync
+      volumes:
+      - name: sshd
+        emptyDir: {}
+      - name: corosync-storage
+        persistentVolumeClaim:
+          claimName: corosync-pvc
